@@ -1,0 +1,9 @@
+spring:
+  profiles:
+    active: dev
+  netty:
+    port: 8899
+    content-path: /services
+    boss-thread: 200
+    worker-thread: 200
+    keepalive: true
