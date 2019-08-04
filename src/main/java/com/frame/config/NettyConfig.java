@@ -10,6 +10,7 @@ public class NettyConfig {
     private String contentPath;
     private int bossThread;
     private int workerThread;
+    private String charset = "UTF-8";
     private boolean keepalive;
 
     public int getPort() {
@@ -50,6 +51,14 @@ public class NettyConfig {
 
     public void setKeepalive(boolean keepalive) {
         this.keepalive = keepalive;
+    }
+
+    public String getCharset() {
+        return charset;
+    }
+
+    public void setCharset(String charset) {
+        this.charset = charset;
     }
 }
 

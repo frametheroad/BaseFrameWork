@@ -1,12 +1,17 @@
 package com.frame.bean;
 
+import com.frame.codec.HttpCoustomDecoder;
 import com.frame.config.NettyConfig;
 import com.frame.handler.HttpHandler;
 import com.frame.utils.SpringUtils;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.channel.*;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelPipeline;
+import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.codec.http.HttpObjectAggregator;
+import io.netty.handler.codec.http.HttpRequestDecoder;
+import io.netty.handler.codec.http.HttpResponseEncoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
@@ -58,8 +63,12 @@ public class NettyBeans {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline pipeline = ch.pipeline();
-                pipeline.addLast(springUtils.getBean("httpServerCodec",HttpServerCodec.class));
-                pipeline.addLast(springUtils.getBean("httpHandler",HttpHandler.class));
+                pipeline.addLast(new HttpRequestDecoder());
+                pipeline.addLast(new HttpObjectAggregator(65536));
+                pipeline.addLast(new HttpCoustomDecoder(Object.class,true));
+                pipeline.addLast(new HttpResponseEncoder());
+//                pipeline.addLast(springUtils.getBean("httpServerCodec",HttpServerCodec.class));
+                pipeline.addLast(springUtils.getBean("httpHandler", HttpHandler.class));
             }
         };
     }

@@ -1,7 +1,5 @@
 package com.frame.annotation;
 
-import io.netty.handler.codec.http.HttpHeaderNames;
-import io.netty.handler.codec.http.HttpMethod;
 import org.springframework.core.annotation.AliasFor;
 
 import java.lang.annotation.*;
@@ -24,7 +22,7 @@ public @interface RequestMapping {
 
     String[] params() default {};
 
-    String[] headers() default {"content-type:application/JSON;charset=UTF-8"};
+    String[] headers() default {"content-type:application/JSO"};
 
     String[] consumes() default {};
 

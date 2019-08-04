@@ -1,7 +1,7 @@
 package com.frame.annotation;
 
 public enum RequestMethod {
-    GET("GET",1), HEAD("GET",1), POST("GET",1), PUT("GET",1), PATCH("GET",1), DELETE("GET",1), OPTIONS("GET",1), TRACE("GET",1);
+    GET("GET",1), HEAD("HEAD",2), POST("POST",3), PUT("PUT",4), PATCH("PATCH",6), DELETE("DELETE",7), OPTIONS("OPTIONS",8), TRACE("TRACE",9);
     private String name;
     private int index;
     // 构造方法
@@ -30,5 +30,13 @@ public enum RequestMethod {
     }
     public void setIndex(int index) {
         this.index = index;
+    }
+    public static RequestMethod getName(String name){
+        for (RequestMethod c : RequestMethod.values()) {
+            if (c.getName() == name) {
+                return c;
+            }
+        }
+        return null;
     }
     }
