@@ -29,6 +29,7 @@ public class XMLUtils {
     public XMLUtils(){
         namespaces.put("soap",new Namespace("soap","http://schemas.xmlsoap.org/soap/envelope/"));
         namespaces.put("s13",new Namespace("s13","http://geronimo.apache.org/xml/ns/attributes-1.1"));
+        namespaces.put("s",new Namespace("s","http://geronimo.apache.org/xml/ns/attributes-1.1"));
         namespaces.put("d",new Namespace("d","http://geronimo.apache.org/xml/ns/attributes-1.1"));
     }
     /**
@@ -96,14 +97,23 @@ public class XMLUtils {
             Element n1 = null;
             if(json.get(key) instanceof JSONArray){
                 for(int jsaIndex =0;jsaIndex<json.getJSONArray(key).size();jsaIndex++){
-                    Element eachNode = createElement(node,key,null);
+                    Element eachNode = createElement(node,key,xmb);
                     convertJsonToXml(eachNode,json.getJSONArray(key).getJSONObject(jsaIndex));
                     continue;
                 }
                 continue;
             }else if(json.get(key) instanceof XMLMiddleBean){
                 xmb = (XMLMiddleBean)json.get(key);
-                n1 = createElement(node,key,xmb);
+                if(xmb.getValue()instanceof JSONArray){
+                    for(int jsaIndex =0;jsaIndex<((JSONArray)xmb.getValue()).size();jsaIndex++){
+                        Element eachNode = createElement(node,key,xmb);
+                        convertJsonToXml(eachNode,((JSONArray)xmb.getValue()).getJSONObject(jsaIndex));
+                        continue;
+                    }
+                    continue;
+                }else {
+                    n1 = createElement(node, key, xmb);
+                }
             }else{
                 if(key.equals("split")||key.equals("prefix")||!(json.get(key) instanceof JSONObject)) {
                     continue;

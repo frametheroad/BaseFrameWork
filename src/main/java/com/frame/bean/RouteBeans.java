@@ -60,6 +60,9 @@ public class RouteBeans {
             return Arrays.asList(rmi.getMethod()).contains(method) ? rmi : null;
         }else{
             RequestMappingInfo rmi = routes.get(uri);
+            if(Objects.isNull(rmi)){
+                return null;
+            }
             boolean isContentType = false;
             boolean isMethod = Arrays.asList(rmi.getMethod()).contains(method);
             if(isMethod) {

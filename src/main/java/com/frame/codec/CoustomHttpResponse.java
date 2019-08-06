@@ -12,6 +12,7 @@ import io.netty.handler.codec.http.FullHttpResponse;
 public class CoustomHttpResponse {
     private FullHttpResponse response;
     private Object body;
+    private String soapMethod;
     private CoustomHttpResponse(){
 
     }
@@ -34,5 +35,13 @@ public class CoustomHttpResponse {
 
     public void setBody(Object body) {
         this.body = body;
+    }
+
+    public String getSoapMethod() {
+        return soapMethod;
+    }
+
+    public void setSoapMethod(String soapMethod) {
+        this.soapMethod = soapMethod;
     }
 }

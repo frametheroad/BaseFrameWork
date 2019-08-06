@@ -1,11 +1,14 @@
 package com.frame.handler;
 
+import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.frame.annotation.RequestMappingInfo;
 import com.frame.annotation.RequestMethod;
 import com.frame.bean.RouteBeans;
 import com.frame.codec.CoustomHttpRequest;
 import com.frame.codec.CoustomHttpResponse;
 import com.frame.config.NettyConfig;
+import com.frame.utils.HttpUtils;
 import com.frame.utils.SpringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -21,7 +24,9 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Scope;
 import org.springframework.stereotype.Component;
 
+import java.lang.reflect.Method;
 import java.nio.charset.Charset;
+import java.util.Arrays;
 import java.util.Objects;
 
 @Component
@@ -58,8 +63,34 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
                 rmi = route.getRoute(uri,method,request.getContentType());
             }
             if(!Objects.isNull(rmi)){
+                Method method1 = rmi.getExecMethod();
+                Class<?>[] paramentersType = method1.getParameterTypes();
+                Class<?>[] commType = {String.class,Integer.class};
                 Object obj = springUtils.getBean(rmi.getBeanName());
-                restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName()).invoke(obj);
+                //没有参数时直接执行
+                if(paramentersType.length==0){
+                    obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName()).invoke(obj);
+                }else if(paramentersType.length==1){ //只有一个参数时传参
+                    switch (HttpUtils.getContentTypeMapping(request.getContentType())) {
+                        case "json":
+                            Object pto = JSON.parseObject(request.getBody().toString(),paramentersType[0]);
+                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName()).invoke(obj,pto);
+                            break;
+                        case "xml":
+                            JSONObject xmlJson = ((JSONObject)request.getBody());
+                            String soapMethod = xmlJson.getJSONObject("Head").getString("ServiceAction").replace("run/","");
+                            JSONObject xmlBodyJson = xmlJson.getJSONObject("Body").getJSONObject("Req"+soapMethod);
+                            Object pto = JSON.parseObject(xmlBodyJson.getJSONObject("SvcBody").toJSONString(),paramentersType[0]);
+                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName()).invoke(obj,pto);
+                            break;
+                        case "string":
+                            break;
+                        default:
+                            break;
+                    }{
+                }else{//多个参数时
+
+                }
 
             }else {
                 sendError(ctx, HttpResponseStatus.NOT_FOUND);
@@ -70,6 +101,11 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
         response.headers().set(HttpHeaderNames.CONTENT_TYPE,request.getContentType());
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH,content.readableBytes());
         CoustomHttpResponse chr = new CoustomHttpResponse(response,restObj);
+        String[] soapType ={"application/xml","text/xml"};
+        if(Arrays.asList(soapType).contains(request.getContentType())){
+            String soapMethod = ((JSONObject)request.getBody()).getJSONObject("Head").getString("ServiceAction");
+            chr.setSoapMethod(soapMethod.replace("run/",""));
+        }
         ctx.writeAndFlush(chr);
     }
     /**

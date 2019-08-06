@@ -3,6 +3,7 @@ package com.frame.codec;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONArray;
 import com.alibaba.fastjson.JSONObject;
+import com.frame.utils.HttpUtils;
 import com.frame.utils.StringUtils;
 import com.frame.utils.XMLUtils;
 import io.netty.buffer.ByteBuf;
@@ -39,7 +40,7 @@ public class HttpCoustomEncoder extends AbstracHttpCoustomEncoder<CoustomHttpRes
     protected void encode(ChannelHandlerContext ctx, CoustomHttpResponse msg, List<Object> out) throws Exception {
         try {
             String bodyTmp = "";
-            switch (getContentTypeMapping(msg.getResponse().headers().get(HttpHeaderNames.CONTENT_TYPE))) {
+            switch (HttpUtils.getContentTypeMapping(msg.getResponse().headers().get(HttpHeaderNames.CONTENT_TYPE))) {
                 case "json":
                     bodyTmp = object2JSONString(msg.getBody());
                     break;
@@ -49,20 +50,19 @@ public class HttpCoustomEncoder extends AbstracHttpCoustomEncoder<CoustomHttpRes
                     JSONObject head = new JSONObject(true);
                     head.put("Mac", new XMLMiddleBean(UUID.randomUUID().toString(),"d"));
                     head.put("MacTime", new XMLMiddleBean(String.valueOf(System.currentTimeMillis()),"d"));
-                    head.put("ServiceAction",new XMLMiddleBean("run/SendMsgSvn","d"));
+                    head.put("ServiceAction",new XMLMiddleBean("run/"+msg.getSoapMethod(),"d"));
                     jsonObject.put("Head",new XMLMiddleBean(head,"soap"));
                     JSONObject body = new JSONObject(true);
                     JSONObject svcHead = new JSONObject(true);
-                    svcHead.put("sysCode",new XMLMiddleBean(String.valueOf(r.nextInt()),"s13"));
+                    svcHead.put("SysCode",new XMLMiddleBean(String.valueOf(r.nextInt()),"s13"));
                     svcHead.put("GloableCode",new XMLMiddleBean(String.valueOf(r.nextInt()),"s13"));
                     JSONObject sendMsgSvc = new JSONObject(true);
-                    sendMsgSvc.put("SvcHead",new XMLMiddleBean(svcHead,"Req",false));
+                    sendMsgSvc.put("ResSvcHead",new XMLMiddleBean(svcHead,"d",true));
                     JSONObject svcBody = new JSONObject(true);
                     object2XMLString(msg.getBody(),svcBody);
-                    sendMsgSvc.put("SvcBody",new XMLMiddleBean(svcBody.containsKey("frameArrays")?svcBody.getJSONArray("frameArrays"):svcBody,"Req",false));
-
-                    body.put("SendMsgSvc",new XMLMiddleBean(sendMsgSvc,"Req",false));
-                    jsonObject.put("body",new XMLMiddleBean(body,"soap"));
+                    sendMsgSvc.put("ResSvcBody",new XMLMiddleBean(svcBody.containsKey("frameArrays")?svcBody.getJSONArray("frameArrays"):svcBody,"d",true));
+                    body.put(msg.getSoapMethod(),new XMLMiddleBean(sendMsgSvc,"Req",false));
+                    jsonObject.put("Body",new XMLMiddleBean(body,"soap"));
 //                    bodyTmp = jsonObject.toJSONString();
                     Document doc = DocumentHelper.createDocument();
                     doc.setXMLEncoding("UTF-8");
@@ -75,12 +75,11 @@ public class HttpCoustomEncoder extends AbstracHttpCoustomEncoder<CoustomHttpRes
                     break;
                 case "string":
                     bodyTmp = object2String(msg.getBody());
-
                     break;
                 default:
                     break;
             }
-            ByteBuf buf = encode0(ctx, msg.getBody());
+            ByteBuf buf = encode0(ctx, bodyTmp);
             FullHttpResponse response = new DefaultFullHttpResponse(msg.getResponse().protocolVersion(), msg.getResponse().status(), buf);
             response.headers().set(HttpHeaderNames.CONTENT_TYPE, msg.getResponse().headers().get(HttpHeaderNames.CONTENT_TYPE));
             response.headers().set(HttpHeaderNames.CONTENT_LENGTH, buf.readableBytes());
@@ -105,8 +104,6 @@ public class HttpCoustomEncoder extends AbstracHttpCoustomEncoder<CoustomHttpRes
         }else if (obj instanceof JSONObject){
             JSONObject json = (JSONObject)obj;
             for (String key : json.keySet()){
-                System.out.print(key);
-                System.out.println(json.get(key));
                 if(! (json.get(key) instanceof JSONObject) && !(json.get(key) instanceof JSONArray)){
                     XMLMiddleBean xmlMiddleBean = new XMLMiddleBean(json.getString(key),"s",true);
                     jsonObject.put(StringUtils.toUpperCaseFirstOne(key),xmlMiddleBean);
@@ -140,56 +137,14 @@ public class HttpCoustomEncoder extends AbstracHttpCoustomEncoder<CoustomHttpRes
             }else{
                 object2XMLString(JSON.parseObject(JSON.toJSONString(obj)),jsonObject);
             }
-//            JSON jsonTemp = JSON.parse(JSON.toJSONString(obj));
-//            jsonTemp.
-//            if(obj instanceof List || obj instanceof Set)
-//            object2XMLString(JSONObject.parse(JSONObject.toJSONString(obj)),jsonObject);
-//            return "";
         }
-//        return "";
     }
 
-//    public static void main(String[] args) {
-//        HttpCoustomEncoder httpCoustomEncoder = new HttpCoustomEncoder(true);
-//        String jsonStr = "{\n" +
-//                "\t\"name\":\"zhangsan\",\n" +
-//                "\t\"sex\":true,\n" +
-//                "\t\"p\":{\n" +
-//                "\t\t\"name\":\"lisi\"\n" +
-//                "\t},\n" +
-//                "\t\"s\":[\n" +
-//                "\t\t{\"name\":\"wangwu\"},\n" +
-//                "\t\t{\"name\":\"zhangliu\"},\n" +
-//                "\t]\n" +
-//                "}";
-//        JSONObject json = JSON.parseObject(jsonStr);
-//        System.out.println(json);
-//        JSONObject jsonObject = new JSONObject(true);
-//        httpCoustomEncoder.object2XMLString(json,jsonObject);
-//        System.out.println(jsonObject);
-//    }
     private String object2String(Object obj){
         if(Objects.isNull(obj)){
             return "";
         }else{
             return obj.toString();
-        }
-    }
-    /**
-     * 根据 Http head Content-Type 获取需要解析的类型
-     * @param contentType Http Content-Type
-     * @return type = {json,xml,string,""}
-     */
-    private String getContentTypeMapping(String contentType){
-        String ct = contentType.toLowerCase();
-        if(ct.startsWith("application/json")){
-            return "json";
-        }else if(ct.startsWith("application/xml")||ct.startsWith("text/xml")){
-            return "xml";
-        }else if(ct.startsWith("text/plain")){
-            return "string";
-        }else{
-            return "";
         }
     }
 }
