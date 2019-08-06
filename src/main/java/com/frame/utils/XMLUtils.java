@@ -5,6 +5,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.frame.codec.XMLMiddleBean;
 import org.dom4j.*;
 import org.dom4j.io.SAXReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.io.ByteArrayInputStream;
 import java.util.HashMap;
@@ -19,10 +21,12 @@ import java.util.Map;
  * @Description:
  *      XML工具类
  */
+@Component
 public class XMLUtils {
-
-    public static final Map<String, Namespace> namespaces = new HashMap<String, Namespace>();
-    static{
+    @Autowired
+    StringUtils stringUtils;
+    public static Map<String, Namespace> namespaces = new HashMap<String, Namespace>();
+    public XMLUtils(){
         namespaces.put("soap",new Namespace("soap","http://schemas.xmlsoap.org/soap/envelope/"));
         namespaces.put("s13",new Namespace("s13","http://geronimo.apache.org/xml/ns/attributes-1.1"));
         namespaces.put("d",new Namespace("d","http://geronimo.apache.org/xml/ns/attributes-1.1"));
@@ -74,13 +78,13 @@ public class XMLUtils {
         List<Element> listElement = node.elements();// 所有一级子节点的list
         if (!listElement.isEmpty()) {
             for (Element e : listElement) {// 遍历所有一级子节点
-                if (e.attributes().isEmpty() && e.elements().isEmpty()) // 判断一级节点是否有属性和子节点
+                if (e.attributes().isEmpty() && e.elements().isEmpty()) { // 判断一级节点是否有属性和子节点
                     result.put(e.getName(), e.getTextTrim());// 沒有则将当前节点作为上级节点的属性对待
-                else {
+                }else {
                     if (!result.containsKey(e.getName())) { // 判断父节点是否存在该一级节点名称的属性
                         result.put(e.getName(), new JSONObject(true));// 没有则创建
                     }
-                    elementToJSONObject(e,result.getJSONObject(e.getName()));// 将该一级节点放入该节点名称的属性对应的值中
+                    elementToJSONObject(e, result.getJSONObject(e.getName()));// 将该一级节点放入该节点名称的属性对应的值中
 
                 }
             }

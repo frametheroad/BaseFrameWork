@@ -15,7 +15,7 @@ public class CoustomHttpResponse {
     private CoustomHttpResponse(){
 
     }
-    private CoustomHttpResponse(FullHttpResponse response,Object body){
+    public CoustomHttpResponse(FullHttpResponse response, Object body){
         this.response=response;
         this.body=body;
     }

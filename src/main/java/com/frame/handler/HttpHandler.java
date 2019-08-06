@@ -4,8 +4,8 @@ import com.frame.annotation.RequestMappingInfo;
 import com.frame.annotation.RequestMethod;
 import com.frame.bean.RouteBeans;
 import com.frame.codec.CoustomHttpRequest;
+import com.frame.codec.CoustomHttpResponse;
 import com.frame.config.NettyConfig;
-import com.frame.handler.bean.HttpLate;
 import com.frame.utils.SpringUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
@@ -41,16 +41,16 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
         HttpVersion httpVersion = HttpVersion.HTTP_1_1;
         Charset charset = CharsetUtil.UTF_8;
         HttpResponseStatus responseStatus = HttpResponseStatus.OK;
-        ByteBuf content=null;
+        ByteBuf content=Unpooled.copiedBuffer("",Charset.forName(config.getCharset()));
+        Object restObj = null;
         String uri = request.getRequest().uri();
         RequestMethod method = RequestMethod.getName(request.getRequest().method().name());
-        HttpLate late = new HttpLate(uri,request.getRequest().method().name());
         if(!uri.startsWith(config.getContentPath())){
             responseStatus = HttpResponseStatus.NOT_FOUND;
             content = Unpooled.copiedBuffer(responseStatus.toString(),charset);
         }else{
             uri = uri.substring(config.getContentPath().length());
-            logger.info("This requeest  uri:[ {} ] method:[ {} ]",uri,late.getMethod());
+            logger.info("This requeest  uri:[ {} ] method:[ {} ]",uri,method.getName());
             RequestMappingInfo rmi = null;
             if(method==RequestMethod.GET){
                 rmi = route.getRoute(uri, method,null);
@@ -59,16 +59,18 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
             }
             if(!Objects.isNull(rmi)){
                 Object obj = springUtils.getBean(rmi.getBeanName());
-                Object restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName()).invoke(obj);
-                content = Unpooled.copiedBuffer(restObj.toString(), Charset.forName(config.getCharset()));
+                restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName()).invoke(obj);
+
             }else {
                 sendError(ctx, HttpResponseStatus.NOT_FOUND);
                 return;
             }
         }
         response = new DefaultFullHttpResponse(httpVersion, responseStatus,content);
+        response.headers().set(HttpHeaderNames.CONTENT_TYPE,request.getContentType());
         response.headers().set(HttpHeaderNames.CONTENT_LENGTH,content.readableBytes());
-        ctx.writeAndFlush(response);
+        CoustomHttpResponse chr = new CoustomHttpResponse(response,restObj);
+        ctx.writeAndFlush(chr);
     }
     /**
      * 发送错误信息

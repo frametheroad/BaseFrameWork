@@ -31,8 +31,8 @@ public class NettyHttpServerLication {
     public void run() throws InterruptedException, UnknownHostException {
         ServerBootstrap serverBootstrap = new ServerBootstrap();
         serverBootstrap.group(bossGroup, workerGroup).channel(NioServerSocketChannel.class)
-                .handler(springUtils.getBean("loggingHandler",LoggingHandler.class))
-                .childHandler(springUtils.getBean("httpChannelInitializer",ChannelInitializer.class));
+                .handler(springUtils.getBean(LoggingHandler.class))
+                .childHandler(springUtils.getBean(ChannelInitializer.class));
         ChannelFuture channelFuture = serverBootstrap.bind(config.getPort()).sync();
         channelFuture.channel().closeFuture().sync();
         logger.info("Netty Http Service is Started！");

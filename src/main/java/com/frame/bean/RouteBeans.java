@@ -23,6 +23,8 @@ public class RouteBeans {
     private Logger logger = LoggerFactory.getLogger(RouteBeans.class);
     @Autowired
     SpringUtils springUtils;
+    @Autowired
+    StringUtils stringUtils;
     @Bean(value = "routes")
     public final Map<String,RequestMappingInfo> getRoutes(){
         Map<String,RequestMappingInfo> rmis = new HashMap<String,RequestMappingInfo>();
@@ -51,9 +53,9 @@ public class RouteBeans {
     }
     public RequestMappingInfo getRoute(String uri, RequestMethod method, String contentType){
         Map<String,RequestMappingInfo> routes = springUtils.getBean("routes",Map.class);
-        if (routes.containsKey(uri)&& Objects.isNull(method)&&StringUtils.isEmpty(contentType)){
+        if (routes.containsKey(uri)&& Objects.isNull(method)&&stringUtils.isEmpty(contentType)){
             return routes.get(uri);
-        }else if(routes.containsKey(uri)&&!Objects.isNull(method)&&StringUtils.isEmpty(contentType)){
+        }else if(routes.containsKey(uri)&&!Objects.isNull(method)&&stringUtils.isEmpty(contentType)){
             RequestMappingInfo rmi = routes.get(uri);
             return Arrays.asList(rmi.getMethod()).contains(method) ? rmi : null;
         }else{

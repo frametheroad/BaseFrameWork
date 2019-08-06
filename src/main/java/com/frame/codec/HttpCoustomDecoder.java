@@ -19,7 +19,6 @@ import java.util.List;
  * @Description:
  */
 public class HttpCoustomDecoder extends AbstracHttpCoustomDecoder<FullHttpRequest>{
-
     public HttpCoustomDecoder(Class<?> clazz, boolean isPrint) {
         super(clazz, isPrint);
     }
@@ -31,66 +30,67 @@ public class HttpCoustomDecoder extends AbstracHttpCoustomDecoder<FullHttpReques
     @Override
     protected void decode(ChannelHandlerContext ctx, FullHttpRequest request, List<Object> list) throws Exception {
         if(!request.decoderResult().isSuccess()){
-            sendError(ctx,HttpResponseStatus.BAD_REQUEST);
-            return;
+            throw new Exception("Bad request");
         }
         CoustomHttpRequest cRequest = new CoustomHttpRequest(request, null);
         String contentType = request.headers().get(HttpHeaderNames.CONTENT_TYPE);
         HttpMethod method = request.method();
         String bodyTemp = request.content().toString(Charset.forName("UTF-8"));
-        if(method == HttpMethod.GET) {
-            String uri = request.uri();
-            if(uri.contains("?")) {
-                String paramenters = uri.substring(uri.indexOf("?") + 1);
-                uri = uri.substring(0, uri.indexOf("?"));
-                JSONObject jsonParament = new JSONObject();
-                for (String paramenter : paramenters.split("&")) {
-                    String[] kv = paramenter.split("=");
-                    jsonParament.put(kv[0], kv[1]);
+        try {
+            if (method == HttpMethod.GET) {
+                String uri = request.uri();
+                if (uri.contains("?")) {
+                    String paramenters = uri.substring(uri.indexOf("?") + 1);
+                    uri = uri.substring(0, uri.indexOf("?"));
+                    JSONObject jsonParament = new JSONObject();
+                    for (String paramenter : paramenters.split("&")) {
+                        String[] kv = paramenter.split("=");
+                        jsonParament.put(kv[0], kv[1]);
+                    }
+                    cRequest.getRequest().setUri(uri);
+                    cRequest.setBody(jsonParament);
+                } else {
+                    cRequest.setBody(null);
                 }
-                cRequest.getRequest().setUri(uri);
-                cRequest.setBody(jsonParament);
-            }else{
-                cRequest.setBody(null);
-            }
-        }else{
-            /**
-             * 非Get请求，未传入ConetntType视作坏的请求
-             */
-            if(StringUtils.isEmpty(contentType)){
-                sendError(ctx,HttpResponseStatus.BAD_REQUEST);
-                return;
-            }
-            switch (getContentTypeMapping(contentType)) {
-                case "json":
-                    JSONObject jsonBody = null;
-                    try{
-                        jsonBody = JSON.parseObject(bodyTemp);
-                    }catch (JSONException e){
-                        sendError(ctx,HttpResponseStatus.BAD_REQUEST);
-                        return;
-                    }
-                    cRequest.setBody(jsonBody);
-                    break;
-                case "xml":
-                    JSONObject jsonXmlBody = null;
-                    try{
-                        jsonXmlBody = XMLUtils.documentToJSONObject(bodyTemp);
-                    }catch (Exception e){
-                        sendError(ctx,HttpResponseStatus.BAD_REQUEST);
-                        return;
-                    }
-                    cRequest.setBody(jsonXmlBody);
-                    break;
-                case "string":
-                    cRequest.setBody(bodyTemp);
-                    break;
-                default:
+            } else {
+                /**
+                 * 非Get请求，未传入ConetntType视作坏的请求
+                 */
+                if (StringUtils.isEmpty(contentType)) {
                     sendError(ctx, HttpResponseStatus.BAD_REQUEST);
-                    break;
+                    return;
+                }
+                switch (getContentTypeMapping(contentType)) {
+                    case "json":
+                        JSONObject jsonBody = null;
+                        try {
+                            jsonBody = JSON.parseObject(bodyTemp);
+                        } catch (JSONException e) {
+                            throw new Exception("Bad request");
+                        }
+                        cRequest.setBody(jsonBody);
+                        break;
+                    case "xml":
+                        JSONObject jsonXmlBody = null;
+                        try {
+                            jsonXmlBody = XMLUtils.documentToJSONObject(bodyTemp);
+                        } catch (Exception e) {
+                            throw new Exception("Bad request");
+                        }
+                        cRequest.setBody(jsonXmlBody);
+                        break;
+                    case "string":
+                        cRequest.setBody(bodyTemp);
+                        break;
+                    default:
+                        throw new Exception("Bad request");
+                }
             }
+            list.add(cRequest);
+        }catch (Exception e){
+            sendError(ctx,HttpResponseStatus.BAD_REQUEST);
+            return;
         }
-        list.add(cRequest);
     }
     /**
      * 根据 Http head Content-Type 获取需要解析的类型

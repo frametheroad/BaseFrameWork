@@ -1,5 +1,7 @@
 package com.frame.utils;
 
+import org.springframework.stereotype.Component;
+
 /**
  * @PackgeName:com.frame.utils
  * @ClassName:StringUtils
@@ -7,6 +9,7 @@ package com.frame.utils;
  * @Date: 2019-08-04 20:00
  * @Description:
  */
+@Component
 public class StringUtils {
     /**
      * 判断字符串是否为空

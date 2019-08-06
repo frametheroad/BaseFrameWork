@@ -1,6 +1,7 @@
 package com.frame.bean;
 
 import com.frame.codec.HttpCoustomDecoder;
+import com.frame.codec.HttpCoustomEncoder;
 import com.frame.config.NettyConfig;
 import com.frame.handler.HttpHandler;
 import com.frame.utils.SpringUtils;
@@ -12,7 +13,6 @@ import io.netty.channel.socket.SocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpResponseEncoder;
-import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.logging.LogLevel;
 import io.netty.handler.logging.LoggingHandler;
 import org.slf4j.Logger;
@@ -22,6 +22,8 @@ import org.springframework.beans.factory.config.ConfigurableBeanFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Scope;
+
+import java.nio.charset.Charset;
 
 
 @Configuration
@@ -47,12 +49,32 @@ public class NettyBeans {
         return new LoggingHandler(LogLevel.INFO);
     }
 
-    @Bean(name = "httpServerCodec")
+    @Bean(name = "httpRequestDecoder")
     @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
-    public HttpServerCodec getHttpServerCodec() {
-        return new HttpServerCodec();
+    public HttpRequestDecoder getHttpRequestDecoder(){
+        return new HttpRequestDecoder();
     }
-
+    @Bean(name = "httpObjectAggregator")
+    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public HttpObjectAggregator getHttpObjectAggregator(){
+        //设置解析Http非Get请求的body体最大聚合数
+        return new HttpObjectAggregator(65536);
+    }
+    @Bean(name = "httpCoustomDecoder")
+    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public HttpCoustomDecoder getHttpCoustomDecoder(){
+        return new HttpCoustomDecoder(Object.class,true,Charset.forName(config.getCharset()));
+    }
+    @Bean(name = "httpResponseEncoder")
+    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public HttpResponseEncoder getHttpResponseEncoder(){
+        return new HttpResponseEncoder();
+    }
+    @Bean(name = "httpCoustomEncoder")
+    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    public HttpCoustomEncoder getHttpCoustomEncoder(){
+        return new HttpCoustomEncoder(true, Charset.forName(config.getCharset()));
+    }
     @Bean(name = "httpChannelInitializer")
     @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
     public ChannelInitializer<SocketChannel> getHttpChannelInitializer() {
@@ -63,12 +85,12 @@ public class NettyBeans {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline pipeline = ch.pipeline();
-                pipeline.addLast(new HttpRequestDecoder());
-                pipeline.addLast(new HttpObjectAggregator(65536));
-                pipeline.addLast(new HttpCoustomDecoder(Object.class,true));
-                pipeline.addLast(new HttpResponseEncoder());
-//                pipeline.addLast(springUtils.getBean("httpServerCodec",HttpServerCodec.class));
-                pipeline.addLast(springUtils.getBean("httpHandler", HttpHandler.class));
+                pipeline.addLast(springUtils.getBean(HttpRequestDecoder.class));
+                pipeline.addLast(springUtils.getBean(HttpObjectAggregator.class));
+                pipeline.addLast(springUtils.getBean(HttpCoustomDecoder.class));
+                pipeline.addLast(springUtils.getBean(HttpResponseEncoder.class));
+                pipeline.addLast(springUtils.getBean(HttpCoustomEncoder.class));
+                pipeline.addLast(springUtils.getBean(HttpHandler.class));
             }
         };
     }
