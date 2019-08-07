@@ -22,7 +22,7 @@ public @interface RequestMapping {
 
     String[] params() default {};
 
-    String[] headers() default {"content-type:application/JSO"};
+    String[] headers() default {"content-type:application/json"};
 
     String[] consumes() default {};
 

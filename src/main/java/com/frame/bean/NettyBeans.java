@@ -75,8 +75,13 @@ public class NettyBeans {
     public HttpCoustomEncoder getHttpCoustomEncoder(){
         return new HttpCoustomEncoder(true, Charset.forName(config.getCharset()));
     }
+
+    /**
+     * 生成workerGroup处理通道Channel，添加pipeline管道组事件
+     * @return
+     */
     @Bean(name = "httpChannelInitializer")
-    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+    @Scope(value = ConfigurableBeanFactory.SCOPE_PROTOTYPE)         //非单例模式创建Bean   每次使用BeanFactory获取对象都会是一个新的
     public ChannelInitializer<SocketChannel> getHttpChannelInitializer() {
 
         return new ChannelInitializer<SocketChannel>() {
@@ -85,11 +90,17 @@ public class NettyBeans {
             @Override
             protected void initChannel(SocketChannel ch) throws Exception {
                 ChannelPipeline pipeline = ch.pipeline();
+                //ByteBuf->fullHttpRequest解码器    入站
                 pipeline.addLast(springUtils.getBean(HttpRequestDecoder.class));
+                //TCP 消息聚合    入站
                 pipeline.addLast(springUtils.getBean(HttpObjectAggregator.class));
+                //fullHttpRequest->CoustomHttpRequest解码器     入站
                 pipeline.addLast(springUtils.getBean(HttpCoustomDecoder.class));
+                //fullHttpResponse->ByteBuf编码器    出站
                 pipeline.addLast(springUtils.getBean(HttpResponseEncoder.class));
+                //CoustomHttpResponse->fullHttpResponse编码器  出站
                 pipeline.addLast(springUtils.getBean(HttpCoustomEncoder.class));
+                //业务处理
                 pipeline.addLast(springUtils.getBean(HttpHandler.class));
             }
         };

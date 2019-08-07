@@ -31,10 +31,10 @@ public class RouteBeans {
         //根据注解获取Bean集合
         Map<String,Object> controllers = springUtils.getBeanWithAccotation(Controller.class);
         controllers.forEach((beanName,obj) ->{
-            RequestMappingInfo rmi = new RequestMappingInfo();
-            rmi.setBeanName(beanName);
-            Arrays.asList(obj.getClass().getDeclaredMethods()).forEach(method ->{
+            Arrays.asList(obj.getClass().getDeclaredMethods()).stream().filter(method -> method.getAnnotation(RequestMapping.class)!=null).forEach(method ->{
                 RequestMapping rm = method.getAnnotation(RequestMapping.class);
+                RequestMappingInfo rmi = new RequestMappingInfo();
+                rmi.setBeanName(beanName);
                 rmi.setName(rm.name());
                 rmi.setConsumes(rm.consumes());
                 rmi.setHeaders(rm.headers());
@@ -44,11 +44,15 @@ public class RouteBeans {
                 rmi.setProduces(rm.produces());
                 rmi.setValue(rm.value());
                 rmi.setExecMethod(method);
+                if(rmis.containsKey(rm.value())){
+                    logger.error("存在重复的请求路径：[{}]",rm.value());
+                    System.exit(1);
+                }
                 rmis.put(rm.value(),rmi);
-                logger.info("请求路径：[{}],请求方法：[{}]",rm.value(),rm.method());
+                logger.info("请求路径：[{}],请求方法：[{}],头信息：[{}]",rm.value(),rm.method(),rm.headers());
             });
         });
-        logger.info("请求总数为：{}",rmis.size());
+        logger.info("请求总数为：{} ",rmis.size());
         return rmis;
     }
     public RequestMappingInfo getRoute(String uri, RequestMethod method, String contentType){

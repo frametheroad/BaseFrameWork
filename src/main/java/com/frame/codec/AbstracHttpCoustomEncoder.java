@@ -1,6 +1,5 @@
 package com.frame.codec;
 
-import com.alibaba.fastjson.JSON;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import io.netty.channel.ChannelHandlerContext;
@@ -32,11 +31,11 @@ public abstract class AbstracHttpCoustomEncoder<T> extends MessageToMessageEncod
         this.isPrint=isPrint;
         this.charset=charset;
     }
-    protected ByteBuf encode0(ChannelHandlerContext ctx, Object body) {
-        String str = JSON.toJSONString(body);
+    protected ByteBuf encode0(ChannelHandlerContext ctx, String body) {
+//        String str = JSON.toJSONString(body);
         if(isPrint)
-            LOGGER.info(str);
-        ByteBuf encodeBuf = Unpooled.copiedBuffer(str, charset);
+            LOGGER.info(body);
+        ByteBuf encodeBuf = Unpooled.copiedBuffer(body, charset);
         return encodeBuf;
     }
 }
