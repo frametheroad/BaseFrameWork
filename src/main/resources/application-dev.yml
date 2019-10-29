@@ -7,3 +7,9 @@ spring:
     boss-thread: 200
     worker-thread: 200
     keepalive: true
+
+  data:
+    mongodb:
+      host: 127.0.0.1
+      port: 27017
+      database: local

@@ -43,8 +43,8 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
     @Autowired
     SpringUtils springUtils;
     @Autowired
-    //打算实现Spring多种路径,后期做优化
-    RouteBeans route;
+    RouteBeans route;//打算实现Spring多种路径,后期做优化
+
     @Override
     protected void channelRead0(ChannelHandlerContext ctx, CoustomHttpRequest request) throws Exception {
         //参数定义
@@ -52,17 +52,18 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
         HttpVersion httpVersion = HttpVersion.HTTP_1_1;
         Charset charset = CharsetUtil.UTF_8;
         HttpResponseStatus responseStatus = HttpResponseStatus.OK;
+        //content是向客户端返回的响应内容
         ByteBuf content = Unpooled.copiedBuffer("", Charset.forName(config.getCharset()));
         Object restObj = null;
         String uri = request.getRequest().uri();
+        logger.info("This requeest  remoteIp:" + ctx.channel().remoteAddress());
         RequestMethod method = RequestMethod.getName(request.getRequest().method().name());
         //判断是否传入项目跟路径  http://localhost:port/项目跟路径
         if (!uri.startsWith(config.getContentPath())) {
             //返回404
-            sendError(ctx,HttpResponseStatus.NOT_FOUND);
+            sendError(ctx, HttpResponseStatus.NOT_FOUND);
             return;
-        }
-        else {
+        } else {
             uri = uri.substring(config.getContentPath().length());
             logger.info("This requeest  uri:[ {} ] method:[ {} ]", uri, method.getName());
             RequestMappingInfo rmi = null;
@@ -91,7 +92,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
                         case "json":
                             //反射机制
                             Object pto = JSON.parseObject(request.getBody().toString(), paramentersType[0]);
-                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(),paramentersType).invoke(obj, pto);
+                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(), paramentersType).invoke(obj, pto);
                             break;
                         case "xml":
                             //获取对应参数
@@ -101,7 +102,7 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
 
                             //反射机制
                             Object pto1 = JSON.parseObject(xmlBodyJson.getJSONObject("SvcBody").toJSONString(), paramentersType[0]);
-                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(),paramentersType).invoke(obj, pto1);
+                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(), paramentersType).invoke(obj, pto1);
                             break;
                         case "string":
                             break;
@@ -113,33 +114,36 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
                     JSONObject jsonObject = new JSONObject(true);
                     switch (HttpUtils.getContentTypeMapping(request.getContentType())) {
                         case "json":
-                            jsonObject.putAll((JSONObject)request.getBody());
+                            jsonObject.putAll((JSONObject) request.getBody());
                             Object[] parObjs = new Object[parameters.length];
-                            for(int pIndex = 0; pIndex<parameters.length;pIndex++){
-                                if(parameters[pIndex].getType() == String.class){
-                                    parObjs[pIndex] = jsonObject.containsKey(parameters[pIndex].getName())?jsonObject.get(parameters[pIndex].getName()):"";
-                                }else if(parameters[pIndex].getType() == Integer.class){
-                                    parObjs[pIndex] = jsonObject.containsKey(parameters[pIndex].getName())?jsonObject.get(parameters[pIndex].getName()):0;
+                            for (int pIndex = 0; pIndex < parameters.length; pIndex++) {
+                                if (parameters[pIndex].getType() == String.class) {
+                                    parObjs[pIndex] = jsonObject.containsKey(parameters[pIndex].getName()) ? jsonObject.get(parameters[pIndex].getName()) : "";
+                                } else if (parameters[pIndex].getType() == Integer.class) {
+                                    parObjs[pIndex] = jsonObject.containsKey(parameters[pIndex].getName()) ? jsonObject.get(parameters[pIndex].getName()) : 0;
                                 }
 
                             }
-                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(),paramentersType).invoke(obj, parObjs);
+                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(), paramentersType).invoke(obj, parObjs);
                             break;
                         case "xml":
                             JSONObject xmlJson = ((JSONObject) request.getBody());
                             String soapMethod = xmlJson.getJSONObject("Head").getString("ServiceAction").replace("run/", "");
-                            jsonObject.putAll(xmlJson.getJSONObject("Body").getJSONObject("Req"+soapMethod).getJSONObject("SvcBody"));
-                            jsonObject.put("GloableCode",xmlJson.getJSONObject("Body").getJSONObject("Req"+soapMethod).getJSONObject("SvcHead").getString("GloableCode"));
+                            System.out.println("1===>" + xmlJson.getJSONObject("Body"));
+                            System.out.println("2===>" + xmlJson.getJSONObject("Body").getJSONObject("Req" + soapMethod));
+                            System.out.println("3===>" + xmlJson.getJSONObject("Body").getJSONObject("Req" + soapMethod).getJSONObject("SvcBody"));
+                            jsonObject.putAll(xmlJson.getJSONObject("Body").getJSONObject("Req" + soapMethod).getJSONObject("SvcBody"));
+                            jsonObject.put("GloableCode", xmlJson.getJSONObject("Body").getJSONObject("Req" + soapMethod).getJSONObject("SvcHead").getString("GloableCode"));
                             Object[] parxmlObjs = new Object[parameters.length];
-                            for(int pIndex = 0; pIndex<parameters.length;pIndex++){
-                                if(parameters[pIndex].getType() == String.class){
-                                    parxmlObjs[pIndex] = jsonObject.containsKey(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName()))?jsonObject.getString(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName())):"";
-                                }else if(parameters[pIndex].getType() == Integer.class){
-                                    parxmlObjs[pIndex] = jsonObject.containsKey(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName()))?jsonObject.getInteger(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName())):0;
+                            for (int pIndex = 0; pIndex < parameters.length; pIndex++) {
+                                if (parameters[pIndex].getType() == String.class) {
+                                    parxmlObjs[pIndex] = jsonObject.containsKey(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName())) ? jsonObject.getString(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName())) : "";
+                                } else if (parameters[pIndex].getType() == Integer.class) {
+                                    parxmlObjs[pIndex] = jsonObject.containsKey(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName())) ? jsonObject.getInteger(StringUtils.toUpperCaseFirstOne(parameters[pIndex].getName())) : 0;
                                 }
 
                             }
-                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(),paramentersType).invoke(obj, parxmlObjs);
+                            restObj = obj.getClass().getDeclaredMethod(rmi.getExecMethod().getName(), paramentersType).invoke(obj, parxmlObjs);
                             break;
                         case "string":
                             break;
@@ -166,9 +170,11 @@ public class HttpHandler extends SimpleChannelInboundHandler<CoustomHttpRequest>
             ctx.writeAndFlush(chr);
         }
     }
+
     /**
      * 发送错误信息
-     * @param ctx ChannelHandlerContext
+     *
+     * @param ctx    ChannelHandlerContext
      * @param status HttpResponseStatus
      */
     private void sendError(ChannelHandlerContext ctx,
