@@ -11,3 +11,7 @@ spring:
     cache.clusterNodes:
       192.168.84.9:7001,192.168.84.9:7002,192.168.84.9:7003,192.168.84.9:7004,192.168.84.9:7005,192.168.84.9:7006
     cache.commandTimeout: 5000
+    cache.maxActive: 8
+    cache.maxWait: -1
+    cache.maxIdle: 8
+    cache.minIdle: 0
